@@ -25,9 +25,9 @@ import org.apache.http.util.EntityUtils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jiyan.requestmenthod.get.GetRequest;
+import com.xujl.http.method.GetRequest;
+import com.xul.validate.StepsGX;
 
-import geet.StepsGX;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 @SuppressWarnings("restriction")

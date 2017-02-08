@@ -1,4 +1,4 @@
-package v2;
+package com.xul.validate;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -13,12 +13,17 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.AbstractHttpClient;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DecompressingHttpClient;
 import org.apache.http.message.BasicNameValuePair;
@@ -31,17 +36,16 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jiyan.requestmenthod.get.GetRequest;
-import com.jiyan.requestmenthod.post.PostRequest;
-
-import geet.CombineImages;
-import geet.FindXDiffRectangeOfTwoImage;
-import geet.HttpClientManager;
+import com.xujl.http.method.GetRequest;
+import com.xujl.http.method.PostRequest;
 //http://gx.gsxt.gov.cn/sydq/loginSydqAction!sydq.dhtml
 public class StepsGX {
-	static CloseableHttpClient httpClient = HttpClientManager.getConnection();
+	static CookieStore cookieStore= new BasicCookieStore();
+	public static CloseableHttpClient httpClient = HttpClientManager.getConnection(cookieStore);
+	static CloseableHttpClient httpClientGee = HttpClientManager.getConnection();
 	static Logger log = LoggerFactory.getLogger(StepsGX.class);
 	public static final String ID="times";
+	public static  String Cookies="";
 	public static final String CHALLENGE="challenge";
 	static final Map<String,String> header=new HashMap<String, String>();
 	//Cookie:GeeTestUser=59ecccee40a0649014658cc2eaa7a8ef; sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%221593f0fc7923cb-0ad99b9339844-59123916-2073600-1593f0fc795218%22%7D; _ga=GA1.2.945726802.1482821716; Hm_lvt_25b04a5e7a64668b9b88e2711fb5f0c4=1482821716,1483514075,1485052077,1485247903; _qddaz=QD.b6fjge.8s08d5.ix75smtk
@@ -65,13 +69,13 @@ public class StepsGX {
 	header.put("Host", "gx.gsxt.gov.cn");
 	header.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:46.0) Gecko/20100101 Firefox/46.0");
 	}
+	@SuppressWarnings("deprecation")
 	public static JSONObject one(){
 		String times=new Date().getTime()+"";
 		try {
-			new GetRequest().request(httpClient, "http://gx.gsxt.gov.cn/sydq/loginSydqAction!sydq.dhtml", null, null);
-			CloseableHttpResponse response = new GetRequest().request(httpClient, "http://gx.gsxt.gov.cn/pc-geetest/register?t="+times, null, null);
-			
+			CloseableHttpResponse request = new GetRequest().request(httpClient, "http://gx.gsxt.gov.cn/sydq/loginSydqAction!sydq.dhtml", null, null);
 		
+			CloseableHttpResponse response = new GetRequest().request(httpClient, "http://gx.gsxt.gov.cn/pc-geetest/register?t="+times, null, null);
 			String body = 	EntityUtils.toString(response.getEntity());
 			log.info(body);
 			JSONObject parseObject = JSON.parseObject(body);
@@ -90,7 +94,7 @@ public class StepsGX {
 
 		
 		try {
-			CloseableHttpResponse response = new GetRequest().request(httpClient, url, null, Cookie);
+			CloseableHttpResponse response = new GetRequest().request(httpClientGee, url, null, Cookie);
 			
 			
 			String body = 	EntityUtils.toString(response.getEntity());
@@ -103,7 +107,6 @@ public class StepsGX {
 	}
 	public static JSONObject three(){
 		JSONObject  config =tow();
-		//http://api.geetest.com/get.php?gt=73a7e78f77d457e28a6ad4f12d4bb63e&challenge=ca8db21a6252fc137457ca9fb3306ab2&product=popup&offline=false&protocol=&path=/static/js/geetest.5.10.0.js&type=slide&callback=geetest_1485166578375 
 		String url="http://api.geetest.com/get.php?gt=" + config.getString("gt") + 
 				"&challenge="+config.getString(CHALLENGE) +"&product=popup&offline=true&protocol=&path=/static/js/geetest.5.10.0.js&type=slide&callback=geetest_" 
 				+ random();
@@ -111,7 +114,7 @@ public class StepsGX {
 //		System.out.println(url);
 		try {
 			while(true){
-			CloseableHttpResponse response = new GetRequest().request(httpClient, url, null, Cookie);
+			CloseableHttpResponse response = new GetRequest().request(httpClientGee, url, null, Cookie);
 			
 			
 			String body = 	EntityUtils.toString(response.getEntity());
@@ -126,13 +129,12 @@ public class StepsGX {
 		}
 		return null;
 	}
-	//http://api.geetest.com/getfrontlib.php?callback=geetest_
 	
     public static String random()
     {
     	
-        String random = String.valueOf(Double.valueOf(10000*Math.random()).intValue()+ new Date().getTime());
-//        log.debug(random);
+        String random = String.valueOf(new Date().getTime()-Double.valueOf(10000*Math.random()).intValue());
+//        String random = String.valueOf(Double.valueOf(10000*Math.random()).intValue()+ new Date().getTime());
 		return random;
     }
     public static String entlist(String challenge,String keyword)
@@ -143,8 +145,20 @@ public class StepsGX {
 		paramsList.add(new BasicNameValuePair("keyword",keyword));
 		paramsList.add(new BasicNameValuePair("nowNum", ""));
 		paramsList.add(new BasicNameValuePair("urlflag", "0"));
+//		header.put("Accept"," application/x-ms-application, image/jpeg, application/xaml+xml, image/gif, image/pjpeg, application/x-ms-xbap, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, */*");
+//		header.put("Referer"," http://gx.gsxt.gov.cn/sydq/loginSydqAction!sydq.dhtml");
+//		header.put("Accept-Language"," zh-CN");
+//		header.put("User-Agent"," Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; WOW64; Trident/4.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0; InfoPath.3; .NET4.0C; .NET4.0E)");
+//		header.put("Content-Type"," application/x-www-form-urlencoded");
+//		header.put("Accept-Encoding"," gzip, deflate");
+//		header.put("Host"," gx.gsxt.gov.cn");
+//		header.put("Connection"," Keep-Alive");
+//		header.put("Pragma"," no-cache");
+//		log.debug(JSON.toJSONString(header));
 		try {
-			return EntityUtils.toString(new PostRequest().request(httpClient, url3, null, paramsList, StepsGX.header).getEntity(),"utf-8");
+			CloseableHttpResponse entity = new PostRequest().request(httpClient, url3, null, paramsList, header);
+						Header[] allHeaders = entity.getAllHeaders();
+			return EntityUtils.toString(entity.getEntity(),"utf-8");
 		}  catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -161,6 +175,10 @@ public class StepsGX {
 		 CloseableHttpResponse response;
 		try {
 			response = new PostRequest().request(httpClient, url2, null, paramsList, header);
+			List<org.apache.http.cookie.Cookie> cookies = cookieStore.getCookies();
+			for (org.apache.http.cookie.Cookie header : cookies) {
+				System.err.println(header.toString());
+			}
 			return EntityUtils.toString(response.getEntity());
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
@@ -173,7 +191,7 @@ public class StepsGX {
     }
     public static void main(String[] args) {
     	JSONObject responseString = null;
-    	while((responseString=gj()).getIntValue("success")!=1);
+    	while((responseString=gj()) ==null || responseString.getIntValue("success")!=1 );
     	String validate = validate(responseString.getString(CHALLENGE) ,responseString.getString("validate") );
 		System.out.println(validate);
 		JSONObject parseObject = JSON.parseObject(validate);
@@ -196,9 +214,9 @@ public class StepsGX {
 //		System.out.println("findXDiffRectangeOfTwoImage:" +posx);
 		
 		JSONObject responseString = null;
-		do{
+//		do{
 		responseString=GeeTestVlidate.GetValidate(posx, three,Cookie);
-		}while("forbidden".equals(responseString.getString("message")));
+//		}while("forbidden".equals(responseString.getString("message")));
 //		System.out.println("responseString:" +responseString);
 		return responseString;
 		} catch (Exception e) {

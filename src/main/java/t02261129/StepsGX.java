@@ -31,12 +31,11 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jiyan.requestmenthod.get.GetRequest;
-import com.jiyan.requestmenthod.post.PostRequest;
-
-import geet.CombineImages;
-import geet.FindXDiffRectangeOfTwoImage;
-import geet.HttpClientManager;
+import com.xujl.http.method.GetRequest;
+import com.xujl.http.method.PostRequest;
+import com.xul.validate.CombineImages;
+import com.xul.validate.FindXDiffRectangeOfTwoImage;
+import com.xul.validate.HttpClientManager;
 //http://gx.gsxt.gov.cn/sydq/loginSydqAction!sydq.dhtml
 public class StepsGX {
 	static CloseableHttpClient httpClient = HttpClientManager.getConnection();

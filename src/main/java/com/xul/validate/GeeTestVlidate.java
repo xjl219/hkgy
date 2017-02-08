@@ -1,4 +1,4 @@
-package v2;
+package com.xul.validate;
 
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
@@ -25,9 +26,8 @@ import org.apache.http.util.EntityUtils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jiyan.requestmenthod.get.GetRequest;
+import com.xujl.http.method.GetRequest;
 
-import geet.StepsGX;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 @SuppressWarnings("restriction")
@@ -40,6 +40,7 @@ public class GeeTestVlidate {
 	static ScriptObjectMirror na;
 	static ScriptObjectMirror trailArray;
 	static Invocable inv;
+	static ArrayList<Integer> lengths = new ArrayList<Integer>();
 	static {
 		try {
 			engine.eval(new FileReader("D:/workspace-sts-3.8.3.RELEASE/geet/src/main/resources/path.js"));
@@ -47,45 +48,58 @@ public class GeeTestVlidate {
 			points = (ScriptObjectMirror) engine.get("point");
 			na = (ScriptObjectMirror) engine.get("na");
 			trailArray = (ScriptObjectMirror) engine.get("trailArray");
+
+			points.keySet().forEach(k -> lengths.add(Integer.parseInt(k)));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
 	}
 
+	public static List<int[][]> getPointsNew(String length) {
+		ArrayList<int[][]> acts = new ArrayList<int[][]>();
+		final int t = Integer.parseInt(length);
+		lengths.stream().sorted((x, y) -> Math.abs(x - t) - Math.abs(y - t)).limit(3).forEach(i -> {
+			Object tmp = points.getMember(i.toString());
+			ScriptObjectMirror member = (ScriptObjectMirror) tmp;
+			int[][] integers = member.to((new int[0][0]).getClass());
+			acts.add(integers);
+
+		});
+
+		return acts;
+
+	}
+
 	public static List<int[]> getPoints(String length) {
 		Object tmp = points.getMember(length);
-	
-		int parseInt = Integer.parseInt(length);
-		for (int i = 1; i < 6&&tmp.toString()=="undefined"; i++) {
-			tmp =  points.getMember((parseInt+i)+"");
-			
-		}
-		for (int i = 1; i < 4&&tmp.toString()=="undefined"; i++) {
-			tmp =  points.getMember((parseInt-i)+"");
-			
-		}
-		ScriptObjectMirror member = (ScriptObjectMirror)tmp;
+		ScriptObjectMirror member = (ScriptObjectMirror) tmp;
 		int[][] integers = member.to((new int[0][0]).getClass());
 		List<int[]> asList = Arrays.asList(integers);
 		return asList;
 
 	}
+
 	public static List<int[]> getPoints2(String length) {
 		Object tmp = trailArray.getMember(length);
 
-		ScriptObjectMirror member = (ScriptObjectMirror)tmp;
+		ScriptObjectMirror member = (ScriptObjectMirror) tmp;
 		int[][] integers = member.to((new int[0][0]).getClass());
 		List<int[]> asList = Arrays.asList(integers);
 		return asList;
-		
+
 	}
 
 	public static void main(String[] args) {
-		System.out.println((getPoints("61")));
+		final int t = 66;
+		List<Integer> collect = lengths.stream().sorted((x, y) -> Math.abs(x - t) - Math.abs(y - t)).limit(3)
+				.collect(Collectors.toList());
+
+		collect.forEach(System.out::println);
+		// map(i -> Math.abs(i-t)).sorted().filter(j -> j < 4);
 	}
 
-	public static JSONObject GetValidate(int xpos, JSONObject config, Map<String,String> Cookie) {
+	public static JSONObject GetValidate(int xpos, JSONObject config, Map<String, String> Cookie) {
 
 		config.put("xpos", xpos);// ["xpos"] = xpos.ToString();
 		ArrayList<JSONObject> actions = GetActions(xpos);
@@ -93,39 +107,48 @@ public class GeeTestVlidate {
 		for (JSONObject action : actions) {
 			String challenge = config.getString("challenge");
 			String gt = config.getString("gt");
-			String response =getResponseStringByJs(xpos, challenge);// getResponseString(xpos, challenge);
+			String response = getResponseStringByJs(xpos, challenge);// getResponseString(xpos,
+																		// challenge);
 			int passTime = action.getIntValue("passtime");
-			String actString = action.getString("action");//"9/--.---,,,(!!Ewsstysstttytyyt(t((((y(yys(tsystsystsystvsystts)ts)t)tssss~sstssssss(!!($3Y11111111111111111111111111911111111111111191919M1191111111bUU$-Q1b$.Hb$*/$5Y";//action.getString("action");
-			int imgLoadTime = next(50, 200)  ;
+			String actString = action.getString("action");// //action.getString("action");
+			int imgLoadTime = next(80, 200);
 			try {
-				Thread.sleep(passTime - imgLoadTime);
+				int sleep = passTime - imgLoadTime;
+				sleep=sleep < 10 ? next(500, 590) : sleep;
+				Thread.sleep(Math.abs(sleep));
 			} catch (InterruptedException e1) {
 				e1.printStackTrace();
 			}
 			String ajaxUrl = String.format(
 					"%sajax.php?gt=%s&challenge=%s&imgload=%s&passtime=%s&userresponse=%s&a=%s&callback=geetest_%s",
 					config.getString("apiserver"), gt, challenge, imgLoadTime, passTime, response, actString,
-					new Date().getTime());
+					StepsGX.random());
 
 			System.out.println(ajaxUrl);
 			try {
-				CloseableHttpResponse response2 = new GetRequest().request(StepsGX.httpClient, ajaxUrl, null, Cookie);
+				CloseableHttpResponse response2 = new GetRequest().request(StepsGX.httpClientGee, ajaxUrl, null,
+						Cookie);
 				String body = EntityUtils.toString(response2.getEntity());
 				System.out.println(body);
 				if (body.contains("DOCTYPE"))
 					continue;
 				JSONObject result = JSON.parseObject(body.substring(body.indexOf("{"), body.length() - 1));
+				System.out.println("message:"+result.getString("message"));
 				if (result.getIntValue("success") == 1) {
-					System.out.println("success"+ xpos);
+					System.out.println("success" + xpos);
 					result.put("challenge", challenge);
 					// success
 					return result;
 				} else if (result.getString("message").contentEquals("abuse")) {
 					// return abuse ,refresh config and try again
-					System.out.println("abuse"+xpos);
+					System.out.println("abuse" + xpos);
 					return result;
+				}else if (result.getString("message").contentEquals("fail")) {
+					// return abuse ,refresh config and try again
+					System.out.println("fail" + xpos);
+					continue;
 				} else {
-					System.out.println("forbidden"+xpos);
+					System.out.println("forbidden" + xpos);
 					return result;
 				}
 			} catch (ParseException e) {
@@ -139,35 +162,19 @@ public class GeeTestVlidate {
 			// return JSON.parseObject(body.substring(body.indexOf("{"),
 			// body.length()-1));
 		}
-		/*
-		 * var uri = new Uri(ajaxUrl); var hreq =
-		 * (HttpWebRequest)HttpWebRequest.Create(uri); hreq.Timeout = 30000;
-		 * hreq.Referer = referer; hreq.UserAgent = userAgent;
-		 * hreq.CookieContainer = new CookieContainer();
-		 * 
-		 * hreq.CookieContainer.SetCookies(uri, cookies); var hres =
-		 * (HttpWebResponse)hreq.GetResponse(); var js = ""; using (StreamReader
-		 * sr = new StreamReader(hres.GetResponseStream())) js = sr.ReadToEnd();
-		 * hres.Close(); var json = js.Substring(3, js.Length - 4);
-		 * //Console.WriteLine(json); var result = JsonObject.Parse(json);
-		 * result["challenge"] = challenge; if (result.Get<int>("success") == 1)
-		 * { // success return result; } else if (result.Get("message") ==
-		 * "abuse") { // return abuse ,refresh config and try again return
-		 * result; } else if (result.Get("message") == "forbidden") { // try
-		 * next action } }
-		 */
-		// failed
 		return null;
 	}
+
 	static String getResponseStringByJs(int posx, String challenge) {
 		try {
-			Object userStr = inv.invokeMethod(na, "ra", posx,challenge);
-		 return userStr.toString();
+			Object userStr = inv.invokeMethod(na, "ra", posx, challenge);
+			return userStr.toString();
 		} catch (NoSuchMethodException | ScriptException e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
+
 	static String getResponseString(int posx, String challenge) {
 		String ct = challenge.substring(32);
 		if (ct.length() < 2)
@@ -232,10 +239,7 @@ public class GeeTestVlidate {
 			act.put("pos", xpos.toString());
 			ArrayList<int[]> action = generate2(xpos);
 			act.put("action", encrypt(action));
-			int pt = 0;
-			for (int[] a : action) {
-				pt += a[2];
-			}
+			int pt = action.get(action.size() - 1)[2];
 			act.put("passtime", pt);
 			acts.add(act);
 		}
@@ -243,34 +247,43 @@ public class GeeTestVlidate {
 
 	}
 
+	// 可以成功
 	public static ArrayList<JSONObject> GetActions(Integer xpos) {
-		ArrayList acts = new ArrayList<JSONObject>();
+		ArrayList<JSONObject> acts = new ArrayList<JSONObject>();
 
-		// for (int i = 0; i < 4; i++) {
-		JSONObject act = new JSONObject();
-		act.put("pos", xpos.toString());
-//		Test.randomPoints(xpos);//
-		List<int[]> action =getPoints(xpos.toString());// 
-		
-		try {
-			Object userStr = inv.invokeMethod(na, "qa", action);
-			act.put("action", userStr.toString());
-		} catch (NoSuchMethodException | ScriptException e) {
-			e.printStackTrace();
-		}
-		
-//		act.put("action", encrypt(action));
-		
-		int pt = 0;
-			pt = action.get(action.size()-1)[2] ;
-		act.put("passtime", pt);
-		acts.add(act);
-		// }
+		List<int[][] > actions = getPointsNew(xpos.toString());//
+		actions.forEach(action -> {
+			JSONObject act = new JSONObject();
+			act.put("pos", xpos.toString());
+
+			try {
+				Object userStr = inv.invokeMethod(na, "qa", action);
+				act.put("action", userStr.toString());
+			} catch (NoSuchMethodException | ScriptException e) {
+				e.printStackTrace();
+			}
+
+			int pt = 0;
+//			action[action.length - 1][2]-action[2][2];//
+			pt =  action[action.length - 1][2];
+			act.put("passtime", pt);
+			acts.add(act);
+		});
 		return acts;
 
 	}
 
 	public static String encrypt(List<int[]> action) {
+		try {
+			Object userStr = inv.invokeMethod(na, "qa", action);
+			return userStr.toString();
+		} catch (NoSuchMethodException | ScriptException e) {
+			e.printStackTrace();
+		}
+		return "";
+	}
+
+	public static String encryptold(List<int[]> action) {
 		List<int[]> d = action;// diff(action);
 		String dx = "", dy = "", dt = "";
 		for (int j = 0; j < d.size(); j++) {
@@ -321,16 +334,17 @@ public class GeeTestVlidate {
 
 		return rnd.nextInt(max) % (max - min + 1) + min;
 	}
-	public static ArrayList<int[]> genPoints(int xpos){
+
+	public static ArrayList<int[]> genPoints(int xpos) {
 		ArrayList<int[]> arr = new ArrayList<int[]>();
 		int sx = next(15, 30);
 		int sy = next(15, 30);
 		int dt = 0;
 		arr.add(new int[] { sx, sy, dt });
-		
-		
+
 		return arr;
 	}
+
 	public static ArrayList<int[]> generate(int xpos)
 
 	{
@@ -427,7 +441,32 @@ public class GeeTestVlidate {
 		arr.add(new int[] { 0, 0, (int) (dtlast) });
 		return arr;
 	}
-
+	
+	 public JSONObject refresh(String gt, String challenge) {
+		 String refreshUrl = String.format(
+		 "http://api.geetest.com/refresh.php?gt=%s&challenge=%s&callback=geetest_%s", gt,challenge,random());
+		 try {
+				while(true){
+				CloseableHttpResponse response = new GetRequest().request(StepsGX.httpClientGee, refreshUrl, null,StepsGX.Cookie);
+				
+				String body = 	EntityUtils.toString(response.getEntity());
+				if(body.contains("DOCTYPE"))
+					continue;
+//				System.out.println(body.substring(body.indexOf("{"), body.length()-1));
+				return JSON.parseObject(body.substring(body.indexOf("{"), body.length()-1));
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return null;
+	 }
+	    public static String random()
+	    {
+	    	
+	        String random = String.valueOf(Double.valueOf(10000*Math.random()).intValue()+ new Date().getTime());
+			return random;
+	    }
 	/*
 	 * public JSONObject RefreshConfig(String gt, String challenge) {
 	 * 

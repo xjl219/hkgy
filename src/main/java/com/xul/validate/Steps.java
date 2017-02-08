@@ -1,4 +1,4 @@
-package geet;
+package com.xul.validate;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,8 +30,8 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jiyan.requestmenthod.get.GetRequest;
-import com.jiyan.requestmenthod.post.PostRequest;
+import com.xujl.http.method.GetRequest;
+import com.xujl.http.method.PostRequest;
 //http://gx.gsxt.gov.cn/sydq/loginSydqAction!sydq.dhtml
 public class Steps {
 	static CloseableHttpClient httpClient = HttpClientManager.getConnection();

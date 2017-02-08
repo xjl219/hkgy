@@ -1,4 +1,4 @@
-package com.jiyan.requestmenthod.get;
+package com.xujl.http.method;
 
 import java.io.IOException;
 import java.util.Map;

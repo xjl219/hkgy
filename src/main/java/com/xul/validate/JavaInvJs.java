@@ -1,4 +1,4 @@
-package geet;
+package com.xul.validate;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
@@ -13,7 +13,7 @@ import org.apache.http.message.BasicNameValuePair;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jiyan.requestmenthod.post.PostRequest;
+import com.xujl.http.method.PostRequest;
 
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import jdk.nashorn.api.scripting.JSObject; 

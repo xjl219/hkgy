@@ -1,4 +1,4 @@
-package com.jiyan.requestmenthod.post;
+package com.xujl.http.method;
 
 import java.io.IOException;
 import java.util.List;
