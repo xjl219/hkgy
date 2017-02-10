@@ -30,7 +30,7 @@ import com.xujl.http.method.GetRequest;
 public class GeeTest {
 	public static final String CHALLENGE="challenge";
 	public static final String GT="gt";
-	int pianyiNum=2;
+	int pianyiNum=3;
 	final Map<String,String> header=new HashMap<String, String>();
 	public static final String AJAX_URL="%sajax.php?gt=%s&challenge=%s&imgload=%s&passtime=%s&userresponse=%s&a=%s&callback=geetest_%s";
 	static CookieStore cookieStore= new BasicCookieStore();
